@@ -20,6 +20,27 @@
   display: block;
 }
 
+.hero-food-grid {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(5px);
+}
+
+.hero-food-grid img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.hero-food-grid img:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
 /* Hero scooter animation */
 /* Inline scooter track over the first words */
 .scooter-track {
