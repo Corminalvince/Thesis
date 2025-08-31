@@ -112,10 +112,10 @@ const Hero = () => {
             <div className="row g-2">
               <div className="col-6">
                 <img 
-                  src="https://th.bing.com/th/id/OIP.NBDMqUdEMpjmask1EyH-RgHaHa?w=189&h=189&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3" 
+                  src="https://tse4.mm.bing.net/th/id/OIP.nPy3qgLPU8oqsYYRKeXz0AHaE8?rs=1&pid=ImgDetMain&o=7&rm=3" 
                   className="img-fluid rounded food-clickable" 
                   alt="Filipino adobo"
-                  onClick={() => openFoodModal('Adobo', 'https://th.bing.com/th/id/OIP.NBDMqUdEMpjmask1EyH-RgHaHa?w=189&h=189&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3', 'Classic Filipino adobo - tender meat braised in soy sauce, vinegar, and spices. A staple comfort food in Filipino households.')}
+                  onClick={() => openFoodModal('Adobo', 'https://tse4.mm.bing.net/th/id/OIP.nPy3qgLPU8oqsYYRKeXz0AHaE8?rs=1&pid=ImgDetMain&o=7&rm=3', 'Classic Filipino adobo - tender meat braised in soy sauce, vinegar, and spices. A staple comfort food in Filipino households.')}
                 />
               </div>
               <div className="col-6">
