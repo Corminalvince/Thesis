@@ -41,6 +41,16 @@
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
 }
 
+.food-clickable {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.food-clickable:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
 /* Hero scooter animation */
 /* Inline scooter track over the first words */
 .scooter-track {
