@@ -215,7 +215,7 @@ const Hero = ({ user }) => {
             </span>
             {" "} Together, One Meal at a Time.
           </h1>
-          <p className="lead text-light opacity-75 mb-4">Connect with your community through food sharing. Whether you want to donate, request food, or volunteer as a driver, Hapag Bayanihan brings us all together.</p>
+          <p className="lead text-light opacity-75 mb-4">Connect with your community through food sharing. Whether you want to donate, request food, or Become our driver, Hapag Bayanihan brings us all together.</p>
           <ScrollLink href="#whats-here" className="btn btn-light btn-lg me-2">Read more</ScrollLink>
           {!user && (
           <button className="btn btn-outline-light btn-lg" data-bs-toggle="modal" data-bs-target="#modalSignup">Get Started</button>
