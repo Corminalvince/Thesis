@@ -590,16 +590,36 @@ const LoginModal = () => {
     setError('');
 
     try {
-      const { data, error } = await auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      
-      // Close modal on success
-      const modal = bootstrap.Modal.getInstance(document.getElementById('modalLogin'));
-      if (modal) modal.hide();
-      
-      // Reset form
-      setEmail('');
-      setPassword('');
+      // Check for default account
+      if (email === 'carlogelicame@hapag.com' && password === 'carlogwapo123') {
+        // Default account login successful
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalLogin'));
+        if (modal) modal.hide();
+        
+        // Reset form
+        setEmail('');
+        setPassword('');
+        
+        // Redirect to dashboard
+        window.location.href = 'dashboard/user_dashboard.html';
+        return;
+      }
+
+      // Regular Supabase authentication
+      if (auth && auth.signInWithPassword) {
+        const { data, error } = await auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        
+        // Close modal on success
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalLogin'));
+        if (modal) modal.hide();
+        
+        // Reset form
+        setEmail('');
+        setPassword('');
+      } else {
+        throw new Error('Authentication service not available');
+      }
     } catch (error) {
       setError(error.message || 'Failed to login');
     } finally {
