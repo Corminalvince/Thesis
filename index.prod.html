@@ -20,26 +20,24 @@
 <body>
   <div id="root"></div>
   
-
-
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
+  
+  <!-- Supabase Client Setup -->
+  <script src="assets/js/supabaseClient.js"></script>
   
   <!-- React CDN -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   
   <!-- Bootstrap 5 JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   
-  <!-- Babel for JSX -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Compiled React App (Production) -->
+  <script src="assets/js/app.min.js"></script>
   
-  <!-- React App -->
-  <script src="assets/js/app.jsx" type="text/babel"></script>
-  
-  <!-- Home Component
-  <script src="assets/Home.js" type="module"></script> -->
+  <!-- Home Component -->
+  <script src="assets/Home.js" type="module"></script>
 
 </body>
 </html>
-
-

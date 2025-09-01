@@ -1,0 +1,18 @@
+{
+  "name": "hapag-bayanihan",
+  "version": "1.0.0",
+  "description": "Community Food Sharing Platform",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx live-server --port=5500",
+    "build": "npx @babel/cli assets/js/app.jsx --out-file assets/js/app.min.js --presets=@babel/preset-react",
+    "build:watch": "npx @babel/cli assets/js/app.jsx --out-file assets/js/app.min.js --presets=@babel/preset-react --watch"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.23.0",
+    "@babel/preset-react": "^7.22.0"
+  },
+  "keywords": ["food-sharing", "community", "react", "supabase"],
+  "author": "Hapag Bayanihan Team",
+  "license": "MIT"
+}

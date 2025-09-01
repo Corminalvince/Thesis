@@ -1,47 +1,159 @@
-const { useState } = React;
+const { useState, useEffect } = React;
 
-const ScrollLink = ({ href, className = '', children }) => {
-  const onClick = (e) => {
+// Get Supabase client from global scope
+const getSupabaseClient = () => {
+  if (window.supabaseClient && window.supabaseClient.auth) {
+    return window.supabaseClient;
+  }
+  return null;
+};
+
+// Initialize auth and db when available
+let auth = null;
+let db = null;
+
+const ScrollLink = ({ href, className = '', children, onClick }) => {
+  const handleClick = (e) => {
     if (!href || !href.startsWith('#')) return;
     const el = document.querySelector(href);
     if (!el) return;
     e.preventDefault();
+    
+    // Call the onClick prop if provided (for active state management)
+    if (onClick) {
+      onClick();
+    }
+    
     const nav = document.querySelector('#mainNav');
     const yOffset = nav ? nav.offsetHeight : 0;
-    const y = el.getBoundingClientRect().top + window.pageYOffset - yOffset + 1;
-    window.scrollTo({ top: y, behavior: 'smooth' });
+    
+    // Get the element's position
+    const elementTop = el.getBoundingClientRect().top + window.pageYOffset;
+    
+    // Calculate the final scroll position to show the section header clearly
+    const y = elementTop - yOffset - 20; // Add 20px extra space for better visibility
+    
+    // Smooth scroll to the target position
+    window.scrollTo({ 
+      top: y, 
+      behavior: 'smooth' 
+    });
+    
+    // Add a small delay and then ensure the section is properly positioned
+    setTimeout(() => {
+      const finalY = elementTop - yOffset - 20;
+      if (Math.abs(window.pageYOffset - finalY) > 10) {
+        window.scrollTo({ top: finalY, behavior: 'smooth' });
+      }
+    }, 500);
+    
+    // Add visual feedback - highlight the clicked section briefly
+    el.style.transition = 'all 0.3s ease';
+    el.style.transform = 'scale(1.02)';
+    el.style.boxShadow = '0 0 20px rgba(102, 126, 234, 0.3)';
+    
+    setTimeout(() => {
+      el.style.transform = 'scale(1)';
+      el.style.boxShadow = 'none';
+    }, 300);
   };
   return (
-    <a href={href} className={className} onClick={onClick}>
+    <a href={href} className={className} onClick={handleClick}>
       {children}
     </a>
   );
 };
 
-const Navbar = () => (
-  <nav id="mainNav" className="navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow-sm">
-    <div className="container">
-      <a className="navbar-brand d-flex align-items-center gap-2" href="#top">
-        <span className="bi bi-egg-fried"></span>
-        <strong>Hapag Bayanihan</strong>
-      </a>
-      <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-        <span className="navbar-toggler-icon"></span>
-      </button>
-      <div className="collapse navbar-collapse" id="navbarSupportedContent">
-        <ul className="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center">
-          <li className="nav-item"><ScrollLink className="nav-link" href="#whats-here">What's Here</ScrollLink></li>
-          <li className="nav-item"><ScrollLink className="nav-link" href="#driver">Be Our Driver</ScrollLink></li>
-          <li className="nav-item"><ScrollLink className="nav-link" href="#about">About</ScrollLink></li>
-          <li className="nav-item ms-lg-2">
-            <button className="btn btn-sm btn-outline-light me-2" data-bs-toggle="modal" data-bs-target="#modalLogin">Login</button>
-            <button className="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#modalSignup">Sign Up</button>
-          </li>
-        </ul>
+const Navbar = ({ user, onSignOut }) => {
+  const [activeNav, setActiveNav] = useState('whats-here');
+  
+  // Update active nav based on scroll position
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = ['whats-here', 'driver', 'about'];
+      const navHeight = document.querySelector('#mainNav')?.offsetHeight || 0;
+      
+      for (let i = sections.length - 1; i >= 0; i--) {
+        const section = document.querySelector(`#${sections[i]}`);
+        if (section) {
+          const rect = section.getBoundingClientRect();
+          if (rect.top <= navHeight + 100) {
+            setActiveNav(sections[i]);
+            break;
+          }
+        }
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const handleNavClick = (sectionId) => {
+    setActiveNav(sectionId);
+  };
+
+  return (
+    <nav id="mainNav" className="navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow-sm">
+      <div className="container">
+        <a className="navbar-brand d-flex align-items-center gap-2" href="#top">
+          <span className="bi bi-egg-fried"></span>
+          <strong>Hapag Bayanihan</strong>
+        </a>
+        <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span className="navbar-toggler-icon"></span>
+        </button>
+        <div className="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul className="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center">
+            <li className="nav-item">
+              <ScrollLink 
+                className={`nav-link ${activeNav === 'whats-here' ? 'active' : ''}`} 
+                href="#whats-here"
+                onClick={() => handleNavClick('whats-here')}
+              >
+                What's Here
+                {activeNav === 'whats-here' && <span className="nav-indicator"></span>}
+              </ScrollLink>
+            </li>
+            <li className="nav-item">
+              <ScrollLink 
+                className={`nav-link ${activeNav === 'driver' ? 'active' : ''}`} 
+                href="#driver"
+                onClick={() => handleNavClick('driver')}
+              >
+                Be Our Driver
+                {activeNav === 'driver' && <span className="nav-indicator"></span>}
+              </ScrollLink>
+            </li>
+            <li className="nav-item">
+              <ScrollLink 
+                className={`nav-link ${activeNav === 'about' ? 'active' : ''}`} 
+                href="#about"
+                onClick={() => handleNavClick('about')}
+              >
+                About
+                {activeNav === 'about' && <span className="nav-indicator"></span>}
+              </ScrollLink>
+            </li>
+            <li className="nav-item ms-lg-2">
+              {user ? (
+                <div className="d-flex align-items-center gap-2">
+                  <span className="text-light small">Welcome, {user.email}</span>
+                  <button className="btn btn-sm btn-outline-light" onClick={onSignOut}>Sign Out</button>
+                </div>
+              ) : (
+                <>
+              <button className="btn btn-sm btn-outline-light me-2" data-bs-toggle="modal" data-bs-target="#modalLogin">Login</button>
+              <button className="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#modalSignup">Sign Up</button>
+                </>
+              )}
+            </li>
+          </ul>
+        </div>
       </div>
-    </div>
-  </nav>
-);
+    </nav>
+  );
+};
 
 // Reusable count-up animation
 const CountUp = ({ end = 0, duration = 1500, className = '' }) => {
@@ -84,7 +196,7 @@ const CountUp = ({ end = 0, duration = 1500, className = '' }) => {
   return <span ref={ref} className={className}>{value}</span>;
 };
 
-const Hero = () => {
+const Hero = ({ user }) => {
   const [selectedFood, setSelectedFood] = useState(null);
 
   const openFoodModal = (name, image, description) => {
@@ -105,7 +217,9 @@ const Hero = () => {
           </h1>
           <p className="lead text-light opacity-75 mb-4">Connect with your community through food sharing. Whether you want to donate, request food, or volunteer as a driver, Hapag Bayanihan brings us all together.</p>
           <ScrollLink href="#whats-here" className="btn btn-light btn-lg me-2">Read more</ScrollLink>
+          {!user && (
           <button className="btn btn-outline-light btn-lg" data-bs-toggle="modal" data-bs-target="#modalSignup">Get Started</button>
+          )}
         </div>
         <div className="col-lg-6">
           <div className="hero-food-grid rounded-4 overflow-hidden shadow-lg">
@@ -168,7 +282,7 @@ const Hero = () => {
       </div>
     )}
   </header>
-  );
+);
 };
 
 const WhatsHere = () => (
@@ -198,11 +312,24 @@ const WhatsHere = () => (
         ))}
       </div>
     </div>
+    {/* Add extra spacing to push Be Our Driver section down */}
+    <div className="py-5"></div>
   </section>
 );
 
-const Driver = () => (
-  <section id="driver" className="py-5">
+{/* Spacer section to ensure proper separation */}
+const Spacer = () => (
+  <section className="py-5 bg-white">
+    <div className="container">
+      <div className="text-center">
+        <div className="py-3"></div>
+      </div>
+    </div>
+  </section>
+);
+
+const Driver = ({ user }) => (
+  <section id="driver" className="py-5 mt-5">
     <div className="container">
       <div className="row g-4 align-items-start">
         <div className="col-lg-6">
@@ -213,7 +340,9 @@ const Driver = () => (
             <li className="mb-2"><i className="bi bi-check2-circle text-success me-2"></i>Simple app-based pickup and delivery</li>
             <li className="mb-2"><i className="bi bi-check2-circle text-success me-2"></i>Be part of a community making real impact</li>
           </ul>
+          {!user && (
           <button className="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalSignup">Sign Up as Driver</button>
+          )}
         </div>
         <div className="col-lg-6">
           <div className="row g-3">
@@ -223,11 +352,11 @@ const Driver = () => (
                   <h6 className="text-uppercase text-body-secondary mb-3">Quick Stats</h6>
                   <div className="d-flex justify-content-center gap-5 text-center">
                     <div>
-                      <div className="h2 mb-0"><CountUp end={500} />+</div>
+                      <div className="h2 mb-0"><CountUp end={0} /></div>
                       <div className="small text-body-secondary">Deliveries Made</div>
                     </div>
                     <div>
-                      <div className="h2 mb-0"><CountUp end={50} />+</div>
+                      <div className="h2 mb-0"><CountUp end={0} /></div>
                       <div className="small text-body-secondary">Active Drivers</div>
                     </div>
                   </div>
@@ -299,7 +428,7 @@ const Mission = () => (
   </section>
 );
 
-const Footer = () => (
+const Footer = ({ user }) => (
   <footer className="bg-dark text-light pt-5 pb-4">
     <div className="container">
       <div className="row g-4">
@@ -314,9 +443,19 @@ const Footer = () => (
         <div className="col-6 col-md-4">
           <h6 className="text-white-50">Get Involved</h6>
           <ul className="list-unstyled small">
+            {!user ? (
+              <>
             <li><button className="btn btn-link p-0 link-light text-decoration-none" data-bs-toggle="modal" data-bs-target="#modalSignup">Donate Food</button></li>
             <li><button className="btn btn-link p-0 link-light text-decoration-none" data-bs-toggle="modal" data-bs-target="#modalSignup">Request Food</button></li>
             <li><button className="btn btn-link p-0 link-light text-decoration-none" data-bs-toggle="modal" data-bs-target="#modalSignup">Volunteer</button></li>
+              </>
+            ) : (
+              <>
+                <li><span className="link-light">Donate Food</span></li>
+                <li><span className="link-light">Request Food</span></li>
+                <li><span className="link-light">Volunteer</span></li>
+              </>
+            )}
             <li><ScrollLink className="link-light text-decoration-none" href="#driver">Become a Driver</ScrollLink></li>
           </ul>
         </div>
@@ -349,7 +488,7 @@ const matchIntent = (text) => {
   if (/login|sign in/.test(t)) return 'Use the Login button in the top-right or press L on your keyboard.';
   if (/sign up|create account|register/.test(t)) return 'Click the Sign Up button in the navbar or Get Started on the hero.';
   if (/mission|about/.test(t)) return 'Our mission is to fight food insecurity through sharing and community action.';
-  if (/developer|dev|facebook|fb/.test(t)) return 'You can message the developer on Facebook: https://www.facebook.com/ur.Vncejoe10';
+  if (/developer|dev|facebook|fb/.test(t)) return 'You can message our developers on \n Facebook:\nJoe Lito Vince Corminal : https://www.facebook.com/ur.Vncejoe10 \n  Carlo Gelicame : https://www.facebook.com/carl.gelicame';
   return "I'm not sure yet, but I'm learning! Try asking about donating, requesting food, or volunteering.";
 };
 
@@ -372,24 +511,24 @@ const Chatbot = () => {
     }, 50);
   };
 
-  React.useEffect(() => {
-    const handler = (e) => {
-      if (e.key.toLowerCase() === 'enter' && !e.shiftKey) {
-        const active = document.activeElement;
-        if (active && active.id === 'hbChatInput') {
-          e.preventDefault();
-          send();
-        }
-      }
-      if (e.key.toLowerCase() === 'l' && !open) {
-        // Quick open login
-        const modal = new bootstrap.Modal(document.getElementById('modalLogin'));
-        modal.show();
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [open]);
+  // React.useEffect(() => {
+  //   const handler = (e) => {
+  //     if (e.key.toLowerCase() === 'enter' && !e.shiftKey) {
+  //       const active = document.activeElement;
+  //       if (active && active.id === 'hbChatInput') {
+  //         e.preventDefault();
+  //         send();
+  //       }
+  //     }
+  //     if (e.key.toLowerCase() === 'l' && !open) {
+  //       // Quick open login
+  //       const modal = new bootstrap.Modal(document.getElementById('modalLogin'));
+  //       modal.show();
+  //     }
+  //   };
+  //   window.addEventListener('keydown', handler);
+  //   return () => window.removeEventListener('keydown', handler);
+  // }, [open]);
 
   // Turn URLs into clickable links
   const renderText = (text) => {
@@ -438,15 +577,37 @@ const Chatbot = () => {
   );
 };
 
-const App = () => (
-  <>
-    <Navbar />
-    <Hero />
-    <WhatsHere />
-    <Driver />
-    <About />
-    <Mission />
-    {/* Auth Modals */}
+// Login Modal Component
+const LoginModal = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const { data, error } = await auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      
+      // Close modal on success
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalLogin'));
+      if (modal) modal.hide();
+      
+      // Reset form
+      setEmail('');
+      setPassword('');
+    } catch (error) {
+      setError(error.message || 'Failed to login');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
     <div className="modal fade hb-modal" id="modalLogin" tabIndex="-1" aria-hidden="true">
       <div className="modal-dialog modal-lg modal-dialog-centered">
         <div className="modal-content">
@@ -461,14 +622,31 @@ const App = () => (
               </div>
               <div className="col-md-7 p-4 p-md-5">
                 <h5 className="fw-bold mb-3">Login</h5>
-                <form className="vstack gap-3">
+                {error && <div className="alert alert-danger">{error}</div>}
+                <form onSubmit={handleLogin} className="vstack gap-3">
                   <div className="input-icon">
                     <i className="bi bi-envelope"></i>
-                    <input type="email" className="form-control" placeholder="you@example.com" required />
+                    <input 
+                      type="email" 
+                      className="form-control" 
+                      placeholder="you@example.com" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      autoComplete="email"
+                      required 
+                    />
                   </div>
                   <div className="input-icon">
                     <i className="bi bi-lock"></i>
-                    <input type="password" className="form-control" placeholder="Your password" required />
+                    <input 
+                      type="password" 
+                      className="form-control" 
+                      placeholder="Your password" 
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="current-password"
+                      required 
+                    />
                   </div>
                   <div className="d-flex justify-content-between align-items-center">
                     <div className="form-check">
@@ -477,8 +655,12 @@ const App = () => (
                     </div>
                     <button type="button" className="btn btn-link p-0">Forgot password?</button>
                   </div>
-                  <button type="button" className="btn btn-primary w-100">Login</button>
-                  <div className="text-center small text-body-secondary">Don't have an account? <button className="btn btn-link p-0" data-bs-target="#modalSignup" data-bs-toggle="modal">Sign up</button></div>
+                  <button type="submit" className="btn btn-primary w-100" disabled={loading}>
+                    {loading ? 'Logging in...' : 'Login'}
+                  </button>
+                  <div className="text-center small text-body-secondary">
+                    Don't have an account? <button type="button" className="btn btn-link p-0" data-bs-target="#modalSignup" data-bs-toggle="modal">Sign up</button>
+                  </div>
                 </form>
               </div>
             </div>
@@ -486,7 +668,98 @@ const App = () => (
         </div>
       </div>
     </div>
+  );
+};
 
+// Signup Modal Component
+const SignupModal = () => {
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    role: 'Donate Food',
+    contactNumber: '',
+    address: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSignup = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      // Map role selection to database role
+      const roleMap = {
+        'Donate Food': 'donor',
+        'Request Food': 'recipient',
+        'Volunteer': 'volunteer',
+        'Become a Driver': 'driver'
+      };
+
+      const userData = {
+        name: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        password: formData.password,
+        role: roleMap[formData.role] || 'recipient',
+        contact_number: formData.contactNumber,
+        address: formData.address
+      };
+
+      console.log('Starting signup process...');
+      const { data, error } = await auth.signUp({ 
+        email: userData.email, 
+        password: userData.password,
+        options: {
+          data: {
+            name: userData.name,
+            role: userData.role,
+            contact_number: userData.contact_number,
+            address: userData.address
+          }
+        }
+      });
+      if (error) throw error;
+      
+      console.log('Signup successful, data:', data);
+      setSuccess('Account created successfully! You can now log in.');
+      
+      // Reset form
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        password: '',
+        role: 'Donate Food',
+        contactNumber: '',
+        address: ''
+      });
+      
+      // Close modal after a short delay to show success message
+      setTimeout(() => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalSignup'));
+        if (modal) modal.hide();
+        setSuccess('');
+      }, 2000);
+    } catch (error) {
+      setError(error.message || 'Failed to create account');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
     <div className="modal fade hb-modal" id="modalSignup" tabIndex="-1" aria-hidden="true">
       <div className="modal-dialog modal-lg modal-dialog-centered">
         <div className="modal-content">
@@ -500,35 +773,104 @@ const App = () => (
                 <div className="illustration h-100" style={{backgroundImage: 'url(https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?q=80&w=800&auto=format&fit=crop)'}}></div>
               </div>
               <div className="col-md-7 p-4 p-md-5">
-                <form className="vstack gap-3">
+                <h5 className="fw-bold mb-3">Sign Up</h5>
+                {error && <div className="alert alert-danger">{error}</div>}
+                {success && <div className="alert alert-success">{success}</div>}
+                <form onSubmit={handleSignup} className="vstack gap-3">
                   <div className="row g-3">
                     <div className="col-md-6">
                       <div className="input-icon">
                         <i className="bi bi-person"></i>
-                        <input type="text" className="form-control" placeholder="First name" required />
+                        <input 
+                          type="text" 
+                          className="form-control" 
+                          placeholder="First name" 
+                          name="firstName"
+                          value={formData.firstName}
+                          onChange={handleInputChange}
+                          autoComplete="given-name"
+                          required 
+                        />
                       </div>
                     </div>
                     <div className="col-md-6">
                       <div className="input-icon">
                         <i className="bi bi-person"></i>
-                        <input type="text" className="form-control" placeholder="Last name" required />
+                        <input 
+                          type="text" 
+                          className="form-control" 
+                          placeholder="Last name" 
+                          name="lastName"
+                          value={formData.lastName}
+                          onChange={handleInputChange}
+                          autoComplete="family-name"
+                          required 
+                        />
                       </div>
                     </div>
                   </div>
                   <div className="input-icon">
                     <i className="bi bi-envelope"></i>
-                    <input type="email" className="form-control" placeholder="you@example.com" required />
+                    <input 
+                      type="email" 
+                      className="form-control" 
+                      placeholder="you@example.com" 
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      autoComplete="email"
+                      required 
+                    />
                   </div>
                   <div className="input-icon">
                     <i className="bi bi-lock"></i>
-                    <input type="password" className="form-control" placeholder="Create a password" required />
+                    <input 
+                      type="password" 
+                      className="form-control" 
+                      placeholder="Create a password" 
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      autoComplete="new-password"
+                      required 
+                    />
+                  </div>
+                  <div className="input-icon">
+                    <i className="bi bi-telephone"></i>
+                    <input 
+                      type="tel" 
+                      className="form-control" 
+                      placeholder="Contact number (optional)" 
+                      name="contactNumber"
+                      value={formData.contactNumber}
+                      onChange={handleInputChange}
+                      autoComplete="tel"
+                    />
+                  </div>
+                  <div className="input-icon">
+                    <i className="bi bi-geo-alt"></i>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      placeholder="Address (optional)" 
+                      name="address"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      autoComplete="street-address"
+                    />
                   </div>
                   <div>
                     <label className="form-label">How would you like to help?</label>
-                    <select className="form-select">
+                    <select 
+                    type="text" 
+                      className="form-select"
+                      name="role"
+                      value={formData.role}
+                      onChange={handleInputChange}
+                    >
                       <option>Donate Food</option>
                       <option>Request Food</option>
-                      <option>Volunteer</option>
+                      <option>Community Kitchen</option>
                       <option>Become a Driver</option>
                     </select>
                   </div>
@@ -536,8 +878,12 @@ const App = () => (
                     <input className="form-check-input" type="checkbox" id="agreeTerms" required />
                     <label className="form-check-label" htmlFor="agreeTerms">I agree to the Terms and Privacy Policy</label>
                   </div>
-                  <button type="button" className="btn btn-success w-100">Create account</button>
-                  <div className="text-center small text-body-secondary">Already have an account? <button className="btn btn-link p-0" data-bs-target="#modalLogin" data-bs-toggle="modal">Log in</button></div>
+                  <button type="submit" className="btn btn-success w-100" disabled={loading}>
+                    {loading ? 'Creating account...' : 'Create account'}
+                  </button>
+                  <div className="text-center small text-body-secondary">
+                    Already have an account? <button type="button" className="btn btn-link p-0" data-bs-target="#modalLogin" data-bs-toggle="modal">Log in</button>
+                  </div>
                 </form>
               </div>
             </div>
@@ -545,10 +891,107 @@ const App = () => (
         </div>
       </div>
     </div>
-    <Footer />
+  );
+};
+
+const App = () => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Initialize auth and db when component mounts
+    const initializeAuth = () => {
+      const client = getSupabaseClient();
+      if (client) {
+        auth = client.auth;
+        db = client;
+        return true;
+      }
+      return false;
+    };
+
+    // Check for existing session
+    const checkUser = async () => {
+      try {
+        // Try to initialize auth
+        if (!initializeAuth()) {
+          // If auth is not available yet, wait a bit and try again
+          setTimeout(() => {
+            if (initializeAuth()) {
+              checkUser();
+            } else {
+              setLoading(false);
+            }
+          }, 100);
+          return;
+        }
+        
+        const { data: { user: currentUser } } = await auth.getSession();
+        setUser(currentUser);
+      } catch (error) {
+        console.error('Error checking user:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkUser();
+
+    // Listen for auth state changes
+    let authStateResult;
+    try {
+      if (auth && auth.onAuthStateChange) {
+        authStateResult = auth.onAuthStateChange((event, session) => {
+          setUser(session?.user ?? null);
+        });
+      }
+    } catch (error) {
+      console.error('Error setting up auth state listener:', error);
+    }
+
+    // Safely handle the subscription
+    if (authStateResult && authStateResult.data && authStateResult.data.subscription) {
+      return () => authStateResult.data.subscription.unsubscribe();
+    } else {
+      // Return a no-op cleanup function if subscription is not available
+      return () => {};
+    }
+  }, []);
+
+  const handleSignOut = async () => {
+    try {
+      if (!auth || !auth.signOut) {
+        console.warn('Auth not available for sign out');
+        setUser(null);
+        return;
+      }
+      
+      await auth.signOut();
+      setUser(null);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  return (
+    <>
+      <Navbar user={user} onSignOut={handleSignOut} />
+      <Hero user={user} />
+      <WhatsHere />
+      <Spacer />
+      <Driver user={user} />
+      <About />
+      <Mission />
+          {/* Auth Modals */}
+    <LoginModal />
+    <SignupModal />
+
+
+    <Footer user={user} />
     <Chatbot />
   </>
 );
+};
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<App />);
