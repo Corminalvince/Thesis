@@ -401,31 +401,33 @@ const UserDashboard = () => {
     favoriteFoods: 0
   });
 
-  // Mock user data for demonstration
+  // Load user from localStorage (set by login/signup)
   useEffect(() => {
-    // Simulate loading user data
-    setTimeout(() => {
-      setUser({
-        email: 'admin@hapag.com',
-        name: 'John Doe',
-        role: 'donor'
-      });
-      
-      // Initialize favorite foods count from existing favorited posts
-      const initialFavoriteFoods = feeds.filter(post => post.isFavorited).length;
-      setUserStats(prevStats => ({
-        ...prevStats,
-        favoriteFoods: initialFavoriteFoods
-      }));
-      
-      setLoading(false);
-    }, 1000);
+    try {
+      const raw = window.localStorage.getItem('hb_user_profile');
+      if (raw) {
+        const profile = JSON.parse(raw);
+        setUser({
+          email: profile.email,
+          name: profile.displayName || profile.email,
+          role: profile.role || 'user'
+        });
+      }
+    } catch (_) {}
+
+    // Initialize favorite foods count from existing favorited posts
+    const initialFavoriteFoods = feeds.filter(post => post.isFavorited).length;
+    setUserStats(prevStats => ({
+      ...prevStats,
+      favoriteFoods: initialFavoriteFoods
+    }));
+
+    setLoading(false);
   }, []);
 
   const handleSignOut = () => {
+    try { window.localStorage.removeItem('hb_user_profile'); } catch(_) {}
     setUser(null);
-    // Add your sign out logic here
-    console.log('User signed out');
     window.location.href = '../index.html';
   };
 
@@ -509,7 +511,7 @@ const UserDashboard = () => {
 
   return (
     <>
-      <DashboardNavbar user={user} onSignOut={handleSignOut} />
+      <DashboardNavbar user={user || { email: '', name: '' }} onSignOut={handleSignOut} />
       
       {/* Dashboard Content */}
       <div className="container-fluid" style={{ marginTop: '80px' }}>

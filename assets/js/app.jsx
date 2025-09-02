@@ -605,18 +605,37 @@ const LoginModal = () => {
         return;
       }
 
-      // Regular Supabase authentication
+      // Try Firebase login first (exposed by signup.js)
+      if (window.hbFirebaseSignIn) {
+        const cred = await window.hbFirebaseSignIn(email, password);
+        // Store minimal profile for dashboard
+        try {
+          const displayName = cred.user.displayName || cred.user.email || email;
+          window.localStorage.setItem('hb_user_profile', JSON.stringify({
+            uid: cred.user.uid,
+            email: cred.user.email || email,
+            displayName
+          }));
+        } catch(_) {}
+
+        // Close modal and redirect
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalLogin'));
+        if (modal) modal.hide();
+        setEmail('');
+        setPassword('');
+        window.location.href = 'dashboard/user_dashboard.html';
+        return;
+      }
+
+      // Fallback: Supabase authentication if configured
       if (auth && auth.signInWithPassword) {
         const { data, error } = await auth.signInWithPassword({ email, password });
         if (error) throw error;
-        
-        // Close modal on success
         const modal = bootstrap.Modal.getInstance(document.getElementById('modalLogin'));
         if (modal) modal.hide();
-        
-        // Reset form
         setEmail('');
         setPassword('');
+        window.location.href = 'dashboard/user_dashboard.html';
       } else {
         throw new Error('Authentication service not available');
       }
@@ -836,6 +855,7 @@ const SignupModal = () => {
                       className="form-control" 
                       placeholder="you@example.com" 
                       name="email"
+                      id ="email"
                       value={formData.email}
                       onChange={handleInputChange}
                       autoComplete="email"
@@ -849,6 +869,7 @@ const SignupModal = () => {
                       className="form-control" 
                       placeholder="Create a password" 
                       name="password"
+                      id="password"
                       value={formData.password}
                       onChange={handleInputChange}
                       autoComplete="new-password"
@@ -898,7 +919,7 @@ const SignupModal = () => {
                     <input className="form-check-input" type="checkbox" id="agreeTerms" required />
                     <label className="form-check-label" htmlFor="agreeTerms">I agree to the Terms and Privacy Policy</label>
                   </div>
-                  <button type="submit" className="btn btn-success w-100" disabled={loading}>
+                  <button id="submit" type="submit" className="btn btn-success w-100" disabled={loading}>
                     {loading ? 'Creating account...' : 'Create account'}
                   </button>
                   <div className="text-center small text-body-secondary">
