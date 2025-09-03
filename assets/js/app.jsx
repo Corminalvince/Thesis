@@ -608,14 +608,25 @@ const LoginModal = () => {
       // Try Firebase login first (exposed by signup.js)
       if (window.hbFirebaseSignIn) {
         const cred = await window.hbFirebaseSignIn(email, password);
-        // Store minimal profile for dashboard
+        // Store enriched profile from Firestore collections
         try {
-          const displayName = cred.user.displayName || cred.user.email || email;
-          window.localStorage.setItem('hb_user_profile', JSON.stringify({
-            uid: cred.user.uid,
-            email: cred.user.email || email,
-            displayName
-          }));
+          let profileData = { uid: cred.user.uid, email: cred.user.email || email };
+          if (window.hbSchema && window.hbSchema.findUser) {
+            const result = await window.hbSchema.findUser({ uid: cred.user.uid, email: cred.user.email || email });
+            if (result && result.user) {
+              const u = result.user;
+              profileData.displayName = u.fullName || u.name || (cred.user.displayName || profileData.email);
+              profileData.role = u.role || profileData.role;
+            } else {
+              profileData.displayName = cred.user.displayName || profileData.email;
+            }
+            if (result && result.kitchen) {
+              try { window.localStorage.setItem('hb_kitchen_profile', JSON.stringify(result.kitchen)); } catch(_) {}
+            }
+          } else {
+            profileData.displayName = cred.user.displayName || profileData.email;
+          }
+          window.localStorage.setItem('hb_user_profile', JSON.stringify(profileData));
         } catch(_) {}
 
         // Close modal and redirect
@@ -623,6 +634,7 @@ const LoginModal = () => {
         if (modal) modal.hide();
         setEmail('');
         setPassword('');
+        // Simple redirect (no account type detection)
         window.location.href = 'dashboard/user_dashboard.html';
         return;
       }

@@ -1,101 +1,26 @@
 const { useState, useEffect } = React;
 
-// Mock data for kitchen foods and community posts
-const mockFeeds = [
-  {
-    id: 1,
-    kitchenName: "Mama's Kitchen",
-    kitchenAvatar: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=150&h=150&fit=crop&crop=face",
-    location: "Quezon City",
-    timestamp: "2 hours ago",
-    content: "Fresh batch of Adobo and Sinigang ready for sharing! 🍖🥘",
-    foodImage: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600&h=400&fit=crop",
-    likes: 24,
-    comments: 8,
-    favorites: 3,
-    isLiked: false,
-    isFavorited: false,
-    price: "Free",
-    quantity: "10 servings",
-    pickupTime: "Today 6-8 PM",
-    status: "Available",
-    conversations: [
-      {
-        id: 1,
-        userId: "user1",
-        userName: "Maria Santos",
-        message: "Hi! I'm interested in the Adobo. Is it still available?",
-        timestamp: "1 hour ago",
-        isKitchen: false
-      },
-      {
-        id: 2,
-        userId: "kitchen1",
-        userName: "Mama's Kitchen",
-        message: "Yes! We have 8 servings left. When would you like to pick up?",
-        timestamp: "45 minutes ago",
-        isKitchen: true
-      }
-    ]
-  },
-  {
-    id: 2,
-    kitchenName: "Community Food Hub",
-    kitchenAvatar: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=150&h=150&fit=crop&crop=face",
-    location: "Makati",
-    timestamp: "5 hours ago",
-    content: "We have extra Pancit Canton and Lumpia for families in need. Contact us! 🍜🥢",
-    foodImage: "https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?w=600&h=400&fit=crop",
-    likes: 31,
-    comments: 12,
-    favorites: 5,
-    isLiked: true,
-    isFavorited: false,
-    price: "₱50 per serving",
-    quantity: "15 servings",
-    pickupTime: "Tomorrow 2-4 PM",
-    status: "Available",
-    conversations: []
-  },
-  {
-    id: 3,
-    kitchenName: "Barangay Kitchen",
-    kitchenAvatar: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=150&h=150&fit=crop&crop=face",
-    location: "Taguig",
-    timestamp: "1 day ago",
-    content: "Kare-kare and Lechon Kawali available for pickup. Perfect for family dinner! 🥘🍖",
-    foodImage: "https://1.bp.blogspot.com/--YtY_9RBbNA/Xj8rMjD8pqI/AAAAAAAA31k/JjFLhXVuniwUmqzi5oPPe8XCojX18m6mQCLcBGAsYHQ/s1600/Fried%2BPork%2BBelly%2BKare%2BKare_MCamaya.jpeg",
-    likes: 45,
-    comments: 18,
-    favorites: 7,
-    isLiked: false,
-    isFavorited: false,
-    price: "₱100 per serving",
-    quantity: "8 servings",
-    pickupTime: "Today 5-7 PM",
-    status: "Available",
-    conversations: []
-  },
-  {
-    id: 4,
-    kitchenName: "Neighbor's Table",
-    kitchenAvatar: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=150&h=150&fit=crop&crop=face",
-    location: "Pasig",
-    timestamp: "2 days ago",
-    content: "Sharing our homemade Bibingka and Puto Bumbong. Christmas spirit all year round! 🎄🍰",
-    foodImage: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600&h=400&fit=crop",
-    likes: 67,
-    comments: 23,
-    favorites: 11,
-    isLiked: true,
-    isFavorited: true,
-    price: "₱75 per serving",
-    quantity: "12 servings",
-    pickupTime: "Tomorrow 3-5 PM",
-    status: "Available",
-    conversations: []
-  }
-];
+// Firebase configuration and initialization
+const firebaseConfig = {
+  apiKey: "AIzaSyB3f_BJYyyO2T9V5VA_1vJTFuy3Jdjs9gA",
+  authDomain: "hapagbayanihan-9e379.firebaseapp.com",
+  projectId: "hapagbayanihan-9e379",
+  storageBucket: "hapagbayanihan-9e379.firebasestorage.app",
+  messagingSenderId: "975831570120",
+  appId: "1:975831570120:web:b899b2d8e3865b72ea37fd"
+};
+
+// Initialize Firebase (if not already initialized)
+let app, db;
+try {
+  app = window.hbFirebaseAuth ? window.hbFirebaseAuth.app : null;
+  db = window.hbFirestoreDb || null;
+} catch (error) {
+  console.error("Firebase initialization error:", error);
+}
+
+// Initial feeds are empty; will populate from Firestore or user posts
+const mockFeeds = [];
 
 // Feed Post Component
 const FeedPost = ({ post, onLike, onComment, onFavorite, onStartConversation, onSendMessage }) => {
@@ -372,7 +297,7 @@ const DashboardNavbar = ({ user, onSignOut }) => {
             <li className="nav-item ms-lg-2">
               {user ? (
                 <div className="d-flex align-items-center gap-2">
-                  <span className="text-light small">Welcome, {user.email}</span>
+                  <span className="text-light small">Welcome, {user.name} ({user.role})</span>
                   <button className="btn btn-sm btn-outline-light" onClick={onSignOut}>Sign Out</button>
                 </div>
               ) : (
@@ -400,30 +325,141 @@ const UserDashboard = () => {
     favoriteKitchens: 8,
     favoriteFoods: 0
   });
+  const [newPost, setNewPost] = useState({ content: '', imageUrl: '' });
 
-  // Load user from localStorage (set by login/signup)
+  const isKitchenRole = (role) => {
+    const r = (role || '').toLowerCase();
+    return r === 'community kitchen' || r === 'kitchen';
+  };
+
+  // Load user from localStorage and Firestore database
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem('hb_user_profile');
-      if (raw) {
-        const profile = JSON.parse(raw);
-        setUser({
-          email: profile.email,
-          name: profile.displayName || profile.email,
-          role: profile.role || 'user'
-        });
+    const loadUserData = async () => {
+      try {
+        const raw = window.localStorage.getItem('hb_user_profile');
+        if (raw) {
+          const profile = JSON.parse(raw);
+          
+          // Ensure Firestore is initialized
+          if (!db) {
+            try {
+              const { getFirestore } = await import("https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js");
+              const firebaseApp = window.hbFirebaseAuth ? window.hbFirebaseAuth.app : app;
+              if (firebaseApp) {
+                db = getFirestore(firebaseApp);
+              }
+            } catch (e) {
+              console.error("Failed to initialize Firestore:", e);
+            }
+          }
+
+          // Try to fetch complete user data from Firestore
+          if (db && (profile.uid || profile.email)) {
+            try {
+              const firestoreHelpers = window.hbFirestore || {};
+              const { doc, getDoc, collection, query, where, getDocs, limit } = firestoreHelpers;
+              if (!doc || !getDoc) throw new Error('Firestore helpers not available');
+              let userData = null;
+              if (profile.uid) {
+                const userDocRef = doc(db, "users", profile.uid);
+                const userDoc = await getDoc(userDocRef);
+                if (userDoc.exists()) {
+                  userData = userDoc.data();
+                }
+              }
+              // Fallback: query by email if no uid doc
+              if (!userData && profile.email) {
+                const q = query(collection(db, "users"), where("email", "==", profile.email), limit(1));
+                const snap = await getDocs(q);
+                snap.forEach((d)=>{ if (!userData) userData = d.data(); });
+              }
+              
+              if (userData) {
+                console.log("User data loaded from Firestore:", userData);
+                
+                // Resolve display name (prefer community kitchen name when role matches)
+                let resolvedName = userData.fullName || userData.name || `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || profile.displayName || profile.email;
+                try {
+                  const roleLower = String(userData.role || '').toLowerCase();
+                  if ((roleLower === 'community kitchen' || roleLower === 'kitchen') && window.hbFirestore && db) {
+                    const { doc, getDoc } = window.hbFirestore;
+                    const kSnap = await getDoc(doc(db, 'community_kitchens', userData.uid || profile.uid));
+                    if (kSnap && kSnap.exists()) {
+                      const k = kSnap.data();
+                      if (k && k.name) resolvedName = k.name;
+                    }
+                  }
+                } catch (e) {
+                  console.error('Error loading kitchen name:', e);
+                }
+
+                // Set user with complete data from Firestore
+                setUser({
+                  uid: userData.uid || profile.uid,
+                  email: userData.email || profile.email,
+                  name: resolvedName,
+                  role: userData.role || profile.role || 'user',
+                  firstName: userData.firstName || '',
+                  lastName: userData.lastName || '',
+                  address: userData.address || '',
+                  contactNumber: userData.contactNumber || ''
+                });
+
+                // Persist nicer displayName to localStorage for future loads
+                try {
+                  const newDisplayName = userData.fullName || userData.name || `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
+                  const updatedProfile = {
+                    ...profile,
+                    displayName: newDisplayName || profile.displayName || profile.email
+                  };
+                  window.localStorage.setItem('hb_user_profile', JSON.stringify(updatedProfile));
+                } catch(_) {}
+              } else {
+                console.log("No user document found in Firestore, using localStorage data");
+                // Fallback to localStorage data
+                setUser({
+                  uid: profile.uid,
+                  email: profile.email,
+                  name: profile.displayName || profile.name || profile.email,
+                  role: profile.role || 'user'
+                });
+              }
+            } catch (firestoreError) {
+              console.error("Error fetching from Firestore:", firestoreError);
+              // Fallback to localStorage data
+              setUser({
+                uid: profile.uid,
+                email: profile.email,
+                name: profile.displayName || profile.name || profile.email,
+                role: profile.role || 'user'
+              });
+            }
+          } else {
+            // Fallback to localStorage data if Firestore not available
+            setUser({
+              uid: profile.uid,
+              email: profile.email,
+              name: profile.displayName || profile.name || profile.email,
+              role: profile.role || 'user'
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error loading user data:", error);
+      } finally {
+        // Initialize favorite foods count from existing favorited posts
+        const initialFavoriteFoods = feeds.filter(post => post.isFavorited).length;
+        setUserStats(prevStats => ({
+          ...prevStats,
+          favoriteFoods: initialFavoriteFoods
+        }));
+        
+        setLoading(false);
       }
-    } catch (_) {}
-
-    // Initialize favorite foods count from existing favorited posts
-    const initialFavoriteFoods = feeds.filter(post => post.isFavorited).length;
-    setUserStats(prevStats => ({
-      ...prevStats,
-      favoriteFoods: initialFavoriteFoods
-    }));
-
-    setLoading(false);
-  }, []);
+    };
+    
+    loadUserData();
+  }, [db, feeds]);
 
   const handleSignOut = () => {
     try { window.localStorage.removeItem('hb_user_profile'); } catch(_) {}
@@ -511,7 +547,7 @@ const UserDashboard = () => {
 
   return (
     <>
-      <DashboardNavbar user={user || { email: '', name: '' }} onSignOut={handleSignOut} />
+      <DashboardNavbar user={user || { email: '', name: '', role: '' }} onSignOut={handleSignOut} />
       
       {/* Dashboard Content */}
       <div className="container-fluid" style={{ marginTop: '80px' }}>
@@ -523,7 +559,11 @@ const UserDashboard = () => {
                 <div className="card-body">
                   <h6 className="fw-bold mb-3">Quick Actions</h6>
                   <div className="d-grid gap-2">
-                    <button className="btn btn-primary btn-sm">
+                    <button 
+                      className="btn btn-primary btn-sm"
+                      disabled={!isKitchenRole(user?.role)}
+                      title={isKitchenRole(user?.role) ? '' : 'Only Community Kitchen accounts can post'}
+                    >
                       <i className="bi bi-plus-circle me-2"></i>
                       Share Food
                     </button>
@@ -563,6 +603,44 @@ const UserDashboard = () => {
 
           {/* Main Feed */}
           <div className="col-lg-6">
+            {/* Welcome Section */}
+            {user && (
+              <div className="card shadow-sm mb-4">
+                <div className="card-body text-center">
+                  <h4 className="text-primary mb-2">Welcome back, {user.name}! 👋</h4>
+                  <p className="text-muted mb-2">You're signed in as a <strong>{user.role}</strong></p>
+                  <div className="d-flex justify-content-center gap-3 mb-3">
+                    <span className="badge bg-primary">{user.email}</span>
+                    <span className="badge bg-success">{user.role}</span>
+                  </div>
+                  {user.firstName && user.lastName && (
+                    <div className="row text-center">
+                      <div className="col-md-6">
+                        <small className="text-muted">First Name</small>
+                        <div className="fw-bold">{user.firstName}</div>
+                      </div>
+                      <div className="col-md-6">
+                        <small className="text-muted">Last Name</small>
+                        <div className="fw-bold">{user.lastName}</div>
+                      </div>
+                    </div>
+                  )}
+                  {user.address && (
+                    <div className="mt-3">
+                      <small className="text-muted">Address</small>
+                      <div className="fw-bold">{user.address}</div>
+                    </div>
+                  )}
+                  {user.contactNumber && (
+                    <div className="mt-2">
+                      <small className="text-muted">Contact</small>
+                      <div className="fw-bold">{user.contactNumber}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="d-flex justify-content-between align-items-center mb-3">
               <h5 className="fw-bold mb-0">Community Food Feed</h5>
               <div className="btn-group btn-group-sm">
@@ -580,6 +658,92 @@ const UserDashboard = () => {
                 </button>
               </div>
             </div>
+
+            {/* Post Composer for Kitchens */}
+            {user && isKitchenRole(user.role) && (
+              <div className="card shadow-sm mb-3">
+                <div className="card-body">
+                  <h6 className="fw-bold mb-2">Create a Post</h6>
+                  <div className="mb-2">
+                    <textarea
+                      className="form-control"
+                      rows="2"
+                      placeholder="Share what's cooking, availability, pickup time..."
+                      value={newPost.content}
+                      onChange={(e)=>setNewPost({...newPost, content: e.target.value})}
+                    ></textarea>
+                  </div>
+                  <div className="input-group mb-2">
+                    <span className="input-group-text"><i className="bi bi-image"></i></span>
+                    <input
+                      type="url"
+                      className="form-control"
+                      placeholder="Image URL (optional)"
+                      value={newPost.imageUrl}
+                      onChange={(e)=>setNewPost({...newPost, imageUrl: e.target.value})}
+                    />
+                  </div>
+                  <div className="text-end">
+                    <button
+                      className="btn btn-success btn-sm"
+                      onClick={async () => {
+                        if (!newPost.content.trim()) return;
+                        const created = {
+                          id: Date.now(),
+                          kitchenName: user.name || 'Your Kitchen',
+                          kitchenAvatar: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=150&h=150&fit=crop&crop=face',
+                          location: 'Your area',
+                          timestamp: 'just now',
+                          content: newPost.content.trim(),
+                          foodImage: newPost.imageUrl || 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600&h=400&fit=crop',
+                          likes: 0,
+                          comments: 0,
+                          favorites: 0,
+                          isLiked: false,
+                          isFavorited: false,
+                          price: 'Free',
+                          quantity: 'N/A',
+                          pickupTime: 'TBD',
+                          status: 'Available',
+                          conversations: []
+                        };
+                        // Persist to Firestore feeds collection using helper
+                        try {
+                          if (window.hbSchema && user?.uid) {
+                            const saved = await window.hbSchema.createFeed({
+                              user_id: user.uid,
+                              kitchen_id: user.uid, // replace with actual kitchen_id when available
+                              post_type: 'kitchen_update',
+                              content: created.content,
+                              image_url: newPost.imageUrl || ''
+                            });
+                            // reflect any normalized values if needed
+                            created.id = saved.id;
+
+                            // Also create a food_details entry with the same kitchen id
+                            await window.hbSchema.createFoodDetail({
+                              food_name: 'Posted Item',
+                              food_desc: created.content,
+                              price: 'Free',
+                              Status: 'Available',
+                              kitchen_id: user.uid
+                            });
+                          }
+                        } catch (e) {
+                          console.error('Failed to save feed:', e);
+                        }
+
+                        setFeeds(prev => [created, ...prev]);
+                        setNewPost({ content: '', imageUrl: '' });
+                      }}
+                    >
+                      <i className="bi bi-send me-1"></i>
+                      Post
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Feed Posts */}
             {feeds.map(post => (

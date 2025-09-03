@@ -31,10 +31,13 @@
   <!-- Babel for JSX -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   
+  <!-- Firebase init and helpers MUST load before the React app -->
+  <script type="module" src="assets/js/signup.js"></script>
+  <!-- Firestore schema helpers for role-based redirect -->
+  <script src="assets/js/firestoreSchema.js"></script>
+
   <!-- React App -->
   <script src="assets/js/app.jsx" type="text/babel"></script>
-
-  <script type="module" src="assets/js/signup.js" defer></script>
   
   <!-- Home Component
   <script src="assets/Home.js" type="module"></script> -->
